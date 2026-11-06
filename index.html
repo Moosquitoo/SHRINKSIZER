@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SHRINKSIZER — réduire une vidéo à la taille voulue</title>
+  <meta name="description" content="Compressez vos vidéos à la taille que vous voulez, directement dans le navigateur. Aucun envoi sur un serveur.">
+  <meta name="theme-color" content="#E7ECE6" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121815" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,300..800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "mediabunny": "./vendor/mediabunny.min.mjs",
+        "mediabunny-aac-encoder": "./vendor/mediabunny-aac-encoder.min.mjs"
+      }
+    }
+  </script>
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#drop">Aller au dépôt de fichiers</a>
+
+  <header class="masthead">
+    <h1 class="wordmark" aria-label="SHRINKSIZER">
+      <span aria-hidden="true">SHRINKSIZER</span>
+    </h1>
+    <p class="lede">Vos vidéos, au poids que vous voulez.</p>
+    <p class="intro">Indiquez une taille, SHRINKSIZER trouve le réglage qui garde la meilleure image possible pour la tenir. Tout se passe dans votre navigateur&nbsp;: vos fichiers ne sont envoyés nulle part.</p>
+  </header>
+
+  <main>
+    <p class="notice" id="support-notice" hidden></p>
+
+    <section class="drop" id="drop" aria-label="Ajouter des vidéos">
+      <input type="file" id="file-input" accept="video/*,.mkv,.avi,.mov,.mpg,.mpeg,.wmv,.flv,.3gp,.ts,.m2ts,.mts,.webm" multiple>
+      <label for="file-input" class="drop-zone" id="drop-zone">
+        <svg class="drop-icon" viewBox="0 0 48 48" aria-hidden="true"><path d="M6 14h36M6 34h36M14 6v36M34 6v36" /><path class="squeeze" d="M18 24h-8m4-4-4 4 4 4M30 24h8m-4-4 4 4-4 4" /></svg>
+        <span class="drop-title">Déposez vos vidéos ici</span>
+        <span class="drop-hint">ou <u>choisissez des fichiers</u>. MP4, MOV, WebM, MKV, AVI, MPEG… sans limite de taille.</span>
+      </label>
+    </section>
+
+    <section class="settings" aria-labelledby="settings-title">
+      <h2 id="settings-title" class="visually-hidden">Réglages</h2>
+
+      <fieldset class="mode">
+        <legend class="visually-hidden">Méthode</legend>
+        <label><input type="radio" name="mode" value="target" checked><span>Viser une taille</span></label>
+        <label><input type="radio" name="mode" value="quality"><span>Régler la qualité</span></label>
+      </fieldset>
+
+      <div class="panel" data-mode="target">
+        <label class="target-field" for="target-mb">
+          <span class="field-label">Taille maximale du fichier</span>
+          <span class="target-input">
+            <input type="number" id="target-mb" min="0.5" step="0.5" value="25" inputmode="decimal">
+            <span class="unit">Mo</span>
+          </span>
+        </label>
+        <div class="presets" role="group" aria-label="Tailles courantes">
+          <button type="button" data-mb="10">Très léger<span>10 Mo</span></button>
+          <button type="button" data-mb="16">WhatsApp<span>16 Mo</span></button>
+          <button type="button" data-mb="20">Discord<span>20 Mo</span></button>
+          <button type="button" data-mb="25" aria-pressed="true">E-mail<span>25 Mo</span></button>
+          <button type="button" data-mb="100">Léger<span>100 Mo</span></button>
+        </div>
+      </div>
+
+      <div class="panel" data-mode="quality" hidden>
+        <label class="field-label" for="quality">Qualité de l'image</label>
+        <input type="range" id="quality" min="0" max="100" value="70">
+        <div class="range-ends"><span>Fichier plus léger</span><span>Image plus fidèle</span></div>
+      </div>
+
+      <div class="options">
+        <label class="option">
+          <span class="field-label">Résolution maximale</span>
+          <select id="max-res">
+            <option value="auto" selected>Automatique</option>
+            <option value="2160">2160p (4K)</option>
+            <option value="1440">1440p</option>
+            <option value="1080">1080p</option>
+            <option value="720">720p</option>
+            <option value="480">480p</option>
+            <option value="360">360p</option>
+          </select>
+        </label>
+        <label class="option">
+          <span class="field-label">Format vidéo</span>
+          <select id="codec">
+            <option value="avc" selected>H.264 (compatible)</option>
+            <option value="hevc">H.265 (plus léger)</option>
+            <option value="av1">AV1 (le plus léger)</option>
+          </select>
+        </label>
+        <label class="option check">
+          <input type="checkbox" id="remove-audio">
+          <span>Retirer le son</span>
+        </label>
+      </div>
+      <p class="codec-note" id="codec-note"></p>
+    </section>
+
+    <section class="queue" aria-labelledby="queue-title">
+      <div class="queue-head" hidden>
+        <h2 id="queue-title">Fichiers</h2>
+        <div class="queue-actions">
+          <button type="button" class="btn ghost" id="clear-done">Retirer les terminés</button>
+          <button type="button" class="btn primary" id="run-all">Tout compresser</button>
+        </div>
+      </div>
+      <ol class="items" id="items"></ol>
+    </section>
+  </main>
+
+  <footer class="colophon">
+    <p>SHRINKSIZER compresse avec WebCodecs (accéléré par votre carte graphique) grâce à <a href="https://mediabunny.dev">Mediabunny</a>, et bascule sur <a href="https://ffmpegwasm.netlify.app">ffmpeg.wasm</a> pour les formats anciens. Aucun fichier ne quitte votre appareil.</p>
+    <p><a href="https://github.com/" id="repo-link">Code source sur GitHub</a></p>
+  </footer>
+
+  <template id="item-template">
+    <li class="item" data-status="probing">
+      <div class="item-head">
+        <p class="item-name"></p>
+        <button type="button" class="icon-btn remove" aria-label="Retirer ce fichier">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15"/></svg>
+        </button>
+      </div>
+      <p class="item-meta"></p>
+
+      <div class="gauge" aria-hidden="true">
+        <div class="gauge-track">
+          <div class="gauge-fill"></div>
+          <div class="gauge-target"><span></span></div>
+        </div>
+        <div class="gauge-scale"><span class="from"></span><span class="to"></span></div>
+      </div>
+
+      <p class="item-plan"></p>
+      <div class="item-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" hidden>
+        <div class="bar"><div></div></div>
+        <p class="progress-text" aria-live="polite"></p>
+      </div>
+      <p class="item-result" aria-live="polite"></p>
+
+      <div class="item-actions">
+        <button type="button" class="btn primary compress">Compresser</button>
+        <button type="button" class="btn ghost cancel" hidden>Annuler</button>
+        <a class="btn primary download" hidden>Télécharger</a>
+        <button type="button" class="btn ghost compare" hidden aria-expanded="false">Comparer avant / après</button>
+        <button type="button" class="btn ghost redo" hidden>Recompresser</button>
+      </div>
+
+      <div class="compare-panel" hidden>
+        <div class="compare-stage">
+          <video class="v-after" muted playsinline preload="metadata"></video>
+          <video class="v-before" muted playsinline preload="metadata"></video>
+          <div class="compare-divider"></div>
+          <span class="compare-tag before">Avant</span>
+          <span class="compare-tag after">Après</span>
+        </div>
+        <div class="compare-controls">
+          <button type="button" class="btn ghost play">Lire</button>
+          <label class="compare-slider">
+            <span class="visually-hidden">Position du rideau avant / après</span>
+            <input type="range" min="0" max="100" value="50">
+          </label>
+        </div>
+      </div>
+    </li>
+  </template>
+</body>
+</html>
